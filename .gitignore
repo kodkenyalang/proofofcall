@@ -43,3 +43,8 @@ next-env.d.ts
 
 # local call store
 /.data
+
+# agent skills installed by Vercel Marketplace integrations
+/.agents/
+/.claude/
+/skills-lock.json
