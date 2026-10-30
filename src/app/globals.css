@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f6f2;
+  --surface: #ffffff;
+  --foreground: #16161a;
+  --muted: #6b6b73;
+  --border: #e3e1da;
+  --accent: #2b59c3;
+  --hit: #0f7b4f;
+  --miss: #b4232c;
+  --sealed: #6a4bc4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0e0e11;
+    --surface: #17171c;
+    --foreground: #ececf1;
+    --muted: #9a9aa5;
+    --border: #2a2a33;
+    --accent: #7c9cf0;
+    --hit: #3ecf8e;
+    --miss: #f06a72;
+    --sealed: #a990f5;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-hit: var(--hit);
+  --color-miss: var(--miss);
+  --color-sealed: var(--sealed);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
