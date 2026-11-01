@@ -36,7 +36,15 @@ All notable changes to Proof of Call are recorded here. The format follows
 - **Project docs.** `README.md`, `AGENT.md` (engineering principles applied to this codebase) and
   `KAIZEN.md` (dated 180-day improvement plan built around the 9 Nov 2026, 19:59 GMT+8 deadline).
 
+- **Payable callers.** When the caller's wallet has no USDC account, the commit transaction also creates it
+  (idempotent, rent read from the RPC and shown on the review screen). Without it, every x402 payment to that
+  caller fails. The unlock route now answers `409` before the paywall when the caller still can't be paid.
+- `scripts/e2e-devnet.ts` takes `KEYPAIR=<funded keypair>` (public devnet airdrops are disabled) and
+  `APP_URL=<deployment>`, and creates the caller's USDC account like the UI.
+
 ### Changed
+- Redis keys are namespaced per Vercel environment (`VERCEL_ENV`). Production keeps `poc:*`; preview and local
+  dev write `preview:poc:*` and `development:poc:*`, so they can no longer read or write production calls.
 - Prices use Coinbase public candles because Pyth Hermes now requires an API key. This limits scoring to
   crypto assets (SOL, BTC, ETH, JUP, JTO, BONK) for now.
 - Aurora integration uses one-time deposit addresses. Persistent addresses are only issued to organisations
@@ -54,8 +62,9 @@ All notable changes to Proof of Call are recorded here. The format follows
 - Not yet tested with a real browser wallet (Phantom, Solflare or Backpack) for commit signing or x402 payment.
 - Aurora top-up and mainnet x402 have not been exercised. Aurora has no testnet and needs an API key
   (`AURORA_API_KEY`), and mainnet needs `X402_FACILITATOR_URL`.
-- Production, preview and local development share one Redis database until keys are split per environment
-  (KAIZEN.md, Day 3).
+- Production, preview and local development still share one Redis database, separated only by key prefix.
+- Commits are transaction v1. Solana CLI 4.1.2 (`solana confirm`) cannot read them yet; the in-browser
+  verifier and raw JSON-RPC with `maxSupportedTransactionVersion: 1` can.
 - Unlock receipts are cached per device in `localStorage`. They are not yet re-derived from the reader's
   on-chain payment.
 - Commits that are never registered ("orphans") are not yet indexed or flagged.

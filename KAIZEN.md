@@ -11,6 +11,7 @@ and a **done-when** check, so "done" is observable rather than a feeling.
 - **Rules:** one improvement at a time. If a day slips, don't do two the next day; move the rest down.
   If the constraint (AGENT.md §11) moves, re-order the remaining days to serve it. The plan serves the system.
 - **Log:** when a day is done, tick it and add one line of what you learned under *Kaizen log* at the bottom.
+  ◐ = partly done: the agent-runnable half is finished, and the log line names what a human still has to do.
 
 ## Phase 1: Ship the hackathon (Days 1–10, 31 Oct – 09 Nov 2026)
 
@@ -18,9 +19,9 @@ Prove the full loop with real wallets and real money, then submit. **Hard deadli
 
 | ✓ | Day | Date | Improvement | Principle | Done when |
 |---|---:|---|---|---|---|
-| ☐ | 1 | Sat 31 Oct | Make a call with Phantom on devnet against the live URL; note every friction point. | Genchi Genbutsu | A real-wallet call is on the live feed |
-| ☐ | 2 | Sun 01 Nov | Unlock that call from a second wallet with faucet USDC, then fix the worst friction found. | Genchi Genbutsu / Kaizen | Caller's USDC rose by the price |
-| ☐ | 3 | Mon 02 Nov | Prefix Redis keys with `VERCEL_ENV` so preview and dev can never write production data. | Blast Radius | A preview call doesn't appear on production |
+| ◐ | 1 | Sat 31 Oct | Make a call with Phantom on devnet against the live URL; note every friction point. | Genchi Genbutsu | A real-wallet call is on the live feed |
+| ◐ | 2 | Sun 01 Nov | Unlock that call from a second wallet with faucet USDC, then fix the worst friction found. | Genchi Genbutsu / Kaizen | Caller's USDC rose by the price |
+| ✓ | 3 | Mon 02 Nov | Prefix Redis keys with `VERCEL_ENV` so preview and dev can never write production data. | Blast Radius | A preview call doesn't appear on production |
 | ☐ | 4 | Tue 03 Nov | Unit tests (hash parity vectors, scoring math, `toBaseUnits`) plus GitHub Actions CI; protect `main`. | Poka-Yoke / Lean (jidoka) | A failing PR cannot merge |
 | ☐ | 5 | Wed 04 Nov | Pick a mainnet x402 facilitator and an Aurora key; configure a mainnet Preview environment. | Huawei IPD (decision checkpoint) | Mainnet 402 lists mainnet USDC |
 | ☐ | 6 | Thu 05 Nov | Mainnet evidence: $2 Aurora top-up from Base USDC, then a $0.10 paid unlock; record the signatures. | Genchi Genbutsu | Tx links in README, Aurora status `SUCCESS` |
@@ -240,3 +241,13 @@ One line per completed day: `Day N: what changed · what we learned`.
 
 - Day 0 (30 Oct 2026): MVP deployed to https://proof-of-call-nu.vercel.app on devnet. Learned: shared Redis across
   environments is our largest blast radius → Day 4.
+- Day 1 ◐ (01 Nov, slipped from 31 Oct): CLI-keypair call `41581a66e249c4cc` committed (tx `3y5tB1b8…9guc`),
+  registered, `402`-challenged, entry-priced, revealed and scored on the live URL; hash re-verified by hand.
+  Learned: the server path works; the Phantom run (human) is still open. Solana CLI 4.1.2 can't read v1 commit txs.
+- Day 2 ◐ (01 Nov): gemba at the chain layer found the worst friction before any reader hit it. A caller with no
+  USDC account can't be paid, so every unlock fails. Fix: the commit creates the account (rent from RPC, shown
+  before signing), and unlock answers `409` before the paywall. Open: a paid unlock from a second wallet with
+  faucet USDC (human, needs faucet.circle.com).
+- Day 3 ✓ (01 Nov, a day early): keys namespaced by `VERCEL_ENV`; production unchanged at `poc:*`. Seen: preview
+  call `3f4099aeb610fa9e` is on the preview feed only, and a local-dev call stays in `development:poc:*`.
+  Learned: local `.env.local` held production Redis credentials, so before this every `pnpm dev` wrote to production.
