@@ -3,11 +3,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import { X402_NETWORK } from "@/lib/config";
 import { toPublic } from "@/lib/server/calls";
 import { getCall, incrementUnlocks } from "@/lib/server/store";
+import { canReceiveUsdc } from "@/lib/server/verify";
 import { x402Server } from "@/lib/server/x402";
 
 // GET /api/calls/:id/unlock: pay-per-call access to a live (sealed) call over x402.
 // Price and payee are per call: the reader pays the caller's wallet directly, in USDC.
-// Missing and already-public calls are answered before the paywall, so they never get a 402.
+// Missing, already-public and unpayable calls are answered before the paywall, so they never get a 402.
 // withX402 also settles only when the handler returns < 400.
 
 const idFromPath = (path: string) => path.split("/").at(-2) ?? "";
@@ -17,6 +18,15 @@ async function precheck(id: string) {
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (Date.now() / 1000 >= record.revealAt) {
     return NextResponse.json({ error: "This call is already public; view it for free" }, { status: 409 });
+  }
+  if (!(await canReceiveUsdc(record.caller))) {
+    return NextResponse.json(
+      {
+        error:
+          "This caller's wallet has no USDC account yet, so it can't be paid and nothing was charged. The call turns public for free when its horizon ends.",
+      },
+      { status: 409 },
+    );
   }
   return null;
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { getAddMemoInstruction } from "@solana-program/memo";
+import { getCreateAssociatedTokenIdempotentInstruction } from "@solana-program/token";
+import { address, type Address } from "@solana/kit";
 import { useConnectedWallet } from "@solana/kit-plugin-wallet/react";
 import { useClient } from "@solana/react";
 import { useRouter } from "next/navigation";
@@ -14,9 +16,18 @@ import {
   type Direction,
   randomSalt,
 } from "@/lib/commitment";
-import { ASSETS, type Asset, CLUSTER, explorerTx, HORIZONS } from "@/lib/config";
+import { ASSETS, type Asset, CLUSTER, explorerTx, HORIZONS, USDC_MINT } from "@/lib/config";
+import { TOKEN_ACCOUNT_BYTES, usdcAccountOf } from "@/lib/usdc";
 
-type Pending = { content: CallContent; hash: string; signature?: string };
+// usdcAccount is set when the caller can't receive USDC yet: the commit then creates it,
+// otherwise every reader's x402 payment to this caller would fail.
+type Pending = {
+  content: CallContent;
+  hash: string;
+  usdcAccount: Address | null;
+  rentLamports: bigint | null;
+  signature?: string;
+};
 type Step = "edit" | "review" | "signing" | "registering" | "failed";
 
 const input = "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent";
@@ -56,7 +67,16 @@ export function NewCallForm() {
       thesis: thesis.trim(),
       salt: randomSalt(),
     };
-    setPending({ content, hash: await commitmentHash(content) });
+    const ata = await usdcAccountOf(content.caller);
+    let missing = false;
+    let rentLamports: bigint | null = null;
+    try {
+      missing = (await client.rpc.getAccountInfo(ata, { encoding: "base64" }).send()).value === null;
+      if (missing) rentLamports = await client.rpc.getMinimumBalanceForRentExemption(TOKEN_ACCOUNT_BYTES).send();
+    } catch {
+      missing = true; // unknown: the create instruction is idempotent, so including it is safe
+    }
+    setPending({ content, hash: await commitmentHash(content), usdcAccount: missing ? ata : null, rentLamports });
     setStep("review");
   }
 
@@ -80,7 +100,18 @@ export function NewCallForm() {
       if (!p.signature) {
         setStep("signing");
         const memo = commitmentMemo(p.hash);
+        const usdcAccount = p.usdcAccount;
         const signature = await sendWithWallet(client, (signer) => [
+          ...(usdcAccount
+            ? [
+                getCreateAssociatedTokenIdempotentInstruction({
+                  payer: signer,
+                  ata: usdcAccount,
+                  owner: signer.address,
+                  mint: address(USDC_MINT),
+                }),
+              ]
+            : []),
           getAddMemoInstruction({ memo, signers: [signer] }),
         ]);
         p = { ...p, signature };
@@ -99,14 +130,20 @@ export function NewCallForm() {
       <div className="space-y-5 rounded-xl border border-border bg-surface p-6">
         <h2 className="text-lg font-semibold">Review commitment</h2>
         <p className="text-sm text-muted">
-          Your wallet will sign one Memo transaction on <b>{CLUSTER}</b>. Only the hash goes on chain. Direction,
+          Your wallet will sign one transaction on <b>{CLUSTER}</b>. Only the hash goes on chain. Direction,
           target and thesis stay sealed until the horizon ends, or until a reader pays to unlock.
         </p>
         <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
           <dt className="text-muted">Fee payer</dt>
           <dd className="break-all font-mono text-xs">{pending.content.caller}</dd>
           <dt className="text-muted">Program</dt>
-          <dd>SPL Memo (no funds move)</dd>
+          <dd>
+            {pending.usdcAccount
+              ? `SPL Memo + create your USDC account so readers can pay you (one-time rent${
+                  pending.rentLamports == null ? "" : ` ${Number(pending.rentLamports) / 1e9} SOL`
+                })`
+              : "SPL Memo (no funds move)"}
+          </dd>
           <dt className="text-muted">Memo</dt>
           <dd className="break-all font-mono text-xs">{commitmentMemo(pending.hash)}</dd>
           <dt className="text-muted">Public now</dt>

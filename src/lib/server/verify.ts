@@ -2,6 +2,7 @@ import "server-only";
 import { createSolanaRpc, signature as toSignature } from "@solana/kit";
 import { MEMO_PREFIX } from "../commitment";
 import { RPC_URL } from "../config";
+import { usdcAccountOf } from "../usdc";
 
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL ?? RPC_URL);
 
@@ -39,4 +40,18 @@ export async function verifyCommitTx(sig: string, caller: string, hash: string):
   if (!memos.includes(expectedMemo)) throw new Error("Commit transaction does not carry this commitment");
 
   return Number(tx.blockTime);
+}
+
+// False only when the chain says the caller's USDC account is missing, so a payment to them
+// would fail. An RPC error returns true: the facilitator simulates before settling, so the
+// reader still can't be charged for a failed transfer.
+export async function canReceiveUsdc(owner: string): Promise<boolean> {
+  try {
+    const { value } = await rpc
+      .getAccountInfo(await usdcAccountOf(owner), { commitment: "confirmed", encoding: "base64" })
+      .send();
+    return value !== null;
+  } catch {
+    return true;
+  }
 }

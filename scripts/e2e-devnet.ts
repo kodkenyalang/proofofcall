@@ -1,23 +1,26 @@
-// Devnet smoke test: throwaway keypair -> memo commitment -> register -> x402 challenge.
+// Devnet smoke test: keypair -> memo commitment (+ caller USDC account) -> register -> x402 challenge.
 // Run: node scripts/e2e-devnet.ts (dev server on :3000, NEXT_PUBLIC_SOLANA_CLUSTER=devnet).
 // LOCAL=1 targets a Surfpool at 127.0.0.1:8899; the server must use the same RPC
-// (NEXT_PUBLIC_SOLANA_RPC_URL=http://127.0.0.1:8899). Public devnet airdrops are disabled.
+// (NEXT_PUBLIC_SOLANA_RPC_URL=http://127.0.0.1:8899). Public devnet airdrops are disabled, so on
+// devnet pass KEYPAIR=<path to a funded keypair JSON>. APP_URL targets a deployment instead of :3000.
 import { getAddMemoInstruction } from "@solana-program/memo";
-import { createClient, lamports } from "@solana/kit";
+import { getCreateAssociatedTokenIdempotentInstructionAsync } from "@solana-program/token";
+import { address, createClient, lamports } from "@solana/kit";
 import { solanaDevnetRpc, solanaLocalRpc } from "@solana/kit-plugin-rpc";
-import { airdropSigner, generatedSigner } from "@solana/kit-plugin-signer";
+import { airdropSigner, generatedSigner, signerFromFile } from "@solana/kit-plugin-signer";
 import { commitmentHash, commitmentMemo, randomSalt, type CallContent } from "../src/lib/commitment.ts";
+import { USDC_MINT } from "../src/lib/config.ts";
 
 const BASE = process.env.APP_URL ?? "http://localhost:3000";
 
-const client = await createClient()
-  .use(generatedSigner())
-  .use(
-    process.env.LOCAL === "1"
-      ? solanaLocalRpc({ transactionConfig: { version: 1 } })
-      : solanaDevnetRpc({ transactionConfig: { version: 1 } }),
-  )
-  .use(airdropSigner(lamports(10_000_000n)));
+const KEYPAIR = process.env.KEYPAIR;
+const rpc =
+  process.env.LOCAL === "1"
+    ? solanaLocalRpc({ transactionConfig: { version: 1 } })
+    : solanaDevnetRpc({ transactionConfig: { version: 1 } });
+const client = KEYPAIR
+  ? await createClient().use(signerFromFile(KEYPAIR)).use(rpc)
+  : await createClient().use(generatedSigner()).use(rpc).use(airdropSigner(lamports(10_000_000n)));
 
 const content: CallContent = {
   caller: client.payer.address,
@@ -26,11 +29,17 @@ const content: CallContent = {
   horizonSec: 300,
   targetBps: 200,
   priceCents: 25,
-  thesis: "e2e smoke test",
+  thesis: process.env.THESIS ?? "e2e smoke test",
   salt: randomSalt(),
 };
 const hash = await commitmentHash(content);
+// Like the UI, the commit creates the caller's USDC account so readers can pay them.
 const result = await client.sendTransaction([
+  await getCreateAssociatedTokenIdempotentInstructionAsync({
+    payer: client.payer,
+    owner: client.payer.address,
+    mint: address(USDC_MINT),
+  }),
   getAddMemoInstruction({ memo: commitmentMemo(hash), signers: [client.payer] }),
 ]);
 const signature = result.context.signature;
