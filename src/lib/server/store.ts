@@ -40,9 +40,18 @@ function withoutUnlocks(record: CallRecord): Omit<CallRecord, "unlocks"> {
   return rest;
 }
 
-function redisStore(redis: Redis): Store {
-  const callKey = (id: string) => `poc:call:${id}`;
-  const unlocksKey = (id: string) => `poc:unlocks:${id}`;
+// Every environment shares one Redis database, so each gets its own key namespace and a
+// preview deploy or local dev server can never read or write production calls. Production
+// keeps the original unprefixed keys so existing calls stay where they are.
+export function keyPrefix(vercelEnv = process.env.VERCEL_ENV): string {
+  const env = vercelEnv || "development";
+  return env === "production" ? "poc:" : `${env}:poc:`;
+}
+
+function redisStore(redis: Redis, prefix: string): Store {
+  const k = (key: string) => `${prefix}${key}`;
+  const callKey = (id: string) => k(`call:${id}`);
+  const unlocksKey = (id: string) => k(`unlocks:${id}`);
 
   async function get(id: string) {
     const [record, unlocks] = await Promise.all([
@@ -54,21 +63,21 @@ function redisStore(redis: Redis): Store {
 
   return {
     async list() {
-      const ids = await redis.zrange<string[]>("poc:calls", 0, -1);
+      const ids = await redis.zrange<string[]>(k("calls"), 0, -1);
       const records = await Promise.all(ids.map(get));
       return records.filter((r): r is CallRecord => r !== null);
     },
     get,
     async insert(record) {
       // Claim the hash and the signature atomically so one commitment registers once.
-      const claimed = await redis.set(`poc:hash:${record.commitHash}`, record.id, { nx: true });
+      const claimed = await redis.set(k(`hash:${record.commitHash}`), record.id, { nx: true });
       if (!claimed) throw new Error(DUPLICATE);
-      if (!(await redis.set(`poc:sig:${record.commitSig}`, record.id, { nx: true }))) {
-        await redis.del(`poc:hash:${record.commitHash}`);
+      if (!(await redis.set(k(`sig:${record.commitSig}`), record.id, { nx: true }))) {
+        await redis.del(k(`hash:${record.commitHash}`));
         throw new Error(DUPLICATE);
       }
       await redis.set(callKey(record.id), withoutUnlocks(record));
-      await redis.zadd("poc:calls", { score: record.committedAt, member: record.id });
+      await redis.zadd(k("calls"), { score: record.committedAt, member: record.id });
       return record;
     },
     async update(id, patch) {
@@ -150,7 +159,7 @@ function getStore(): Store {
   if (!hasRedis && process.env.VERCEL) {
     throw new Error("Upstash Redis env vars are missing; connect the Upstash store to this Vercel project");
   }
-  store = hasRedis ? redisStore(Redis.fromEnv()) : fileStore();
+  store = hasRedis ? redisStore(Redis.fromEnv(), keyPrefix()) : fileStore();
   return store;
 }
 

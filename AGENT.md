@@ -122,9 +122,10 @@ Treat every external dependency as unreliable, slow and occasionally lying.
 
 ## 9. Blast-radius minimisation
 
-- **One database is shared by every environment today.** Until keys are split per environment, never run
-  local scripts that write against the Vercel Redis env vars. Test writes go to Surfpool plus the JSON-file
-  store.
+- **One database, one namespace per environment.** Every environment shares one Redis database, so keys are
+  prefixed by `VERCEL_ENV` (`keyPrefix()` in `src/lib/server/store.ts`): production keeps `poc:*`, preview
+  uses `preview:poc:*`, local dev `development:poc:*`. Never set `VERCEL_ENV=production` locally. A separate
+  store per stage is still planned (KAIZEN.md, Day 132).
 - **Pushing to `main` deploys production.** Do work on branches, which get preview URLs. Merge only green,
   reviewed, small changes.
 - **Feature flags** for anything touching payments, scoring or encryption. Ramp 10% → 50% → 100%.
