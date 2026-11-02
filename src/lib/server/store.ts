@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Redis } from "@upstash/redis";
 import type { CallContent } from "../commitment";
+import { CLUSTER, type Cluster } from "../config";
 import type { Outcome } from "../types";
 
 // Call storage. Integrity does not depend on it: every call is anchored by its on-chain
@@ -40,12 +41,14 @@ function withoutUnlocks(record: CallRecord): Omit<CallRecord, "unlocks"> {
   return rest;
 }
 
-// Every environment shares one Redis database, so each gets its own key namespace and a
-// preview deploy or local dev server can never read or write production calls. Production
-// keeps the original unprefixed keys so existing calls stay where they are.
-export function keyPrefix(vercelEnv = process.env.VERCEL_ENV): string {
+// Every environment shares one Redis database, so each (environment, cluster) pair gets its own
+// key namespace: a preview deploy or local dev server can never read or write production calls,
+// and a mainnet deploy never lists devnet calls (whose signatures don't exist on mainnet).
+// Production on devnet keeps the original unprefixed keys so existing calls stay where they are.
+export function keyPrefix(vercelEnv = process.env.VERCEL_ENV, cluster: Cluster = CLUSTER): string {
   const env = vercelEnv || "development";
-  return env === "production" ? "poc:" : `${env}:poc:`;
+  const net = cluster === "mainnet" ? "mainnet:" : "";
+  return env === "production" ? `${net}poc:` : `${env}:${net}poc:`;
 }
 
 function redisStore(redis: Redis, prefix: string): Store {

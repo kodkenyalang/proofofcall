@@ -32,7 +32,14 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 429) {
     throw new Error(`Aurora rate limit hit; retry in ${res.headers.get("Retry-After") ?? "a few"}s`);
   }
-  if (!res.ok) throw new Error(`Aurora ${path.split("/")[2]} failed: HTTP ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    // Observed 2 Nov 2026: a wrong key is a 404 with this message on quote and status (the token list is public).
+    if (text.includes("Application key not found")) {
+      throw new Error("Aurora rejected AURORA_API_KEY; check the key in https://studio.aurora.dev");
+    }
+    throw new Error(`Aurora ${path.split("/")[2]} failed: HTTP ${res.status} ${text}`);
+  }
   return (await res.json()) as T;
 }
 
