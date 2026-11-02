@@ -69,7 +69,7 @@ Model the product as stocks, flows and feedback loops before changing behaviour.
 | **Sort** | Delete dead code, unused deps, stale flags and experiments. If it's not called, it goes. |
 | **Set in order** | `src/lib` = shared and pure. `src/lib/server` = server-only (`import "server-only"`). `src/lib/client` = browser-only. `src/components` = UI. `src/app/api` = thin route handlers. Things live where a newcomer would look first. |
 | **Shine** | Zero lint warnings, zero type errors, no commented-out code, no `console.log` left behind. |
-| **Standardize** | One way to do each thing: zod for input validation, `commitmentHash` for hashing, `priceAt` for prices, `sendWithWallet` for transactions, `fmt*` helpers for display. Don't add a second. |
+| **Standardize** | One way to do each thing: zod for input validation, `commitmentHash` for hashing, `priceAt` for prices, `scoreCall` for scoring, `sendWithWallet` for transactions, `fmt*` helpers for display, Vitest for tests (`src/**/__tests__/*.test.ts`). Don't add a second. Logic worth testing lives in a pure module, not in a component or a route. |
 | **Sustain** | CI enforces Shine. The weekly review (KAIZEN.md, every 7th day) re-runs Sort. |
 
 ## 6. Poka-Yoke (mistake-proofing)
@@ -249,7 +249,8 @@ Serve the user before they have to ask.
 4. What did you *see* (layer by layer) that motivates it? (§12)
 
 **Before merging**
-1. `pnpm lint`, `npx tsc --noEmit` and the tests pass, with zero warnings. (§3, §5)
+1. `pnpm check` (lint with zero warnings, `next typegen` + `tsc`, Vitest) passes locally, and CI (`.github/workflows/ci.yml`,
+   which also builds) is green on the PR. `main` requires it. (§3, §5)
 2. Inputs validated, no duplicate implementations, server-only code stays server-only. (§5, §6)
 3. External calls have timeouts and retries, and writes are idempotent. (§8)
 4. UI states covered: pending, success, failure, empty. (§17)

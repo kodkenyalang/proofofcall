@@ -33,6 +33,11 @@ pnpm dev                        # http://localhost:3000
 You need a Wallet Standard wallet (Phantom, Solflare, Backpack) on the same cluster. For devnet USDC to test
 unlocks, use https://faucet.circle.com.
 
+**Checks.** `pnpm check` runs lint (zero warnings), `next typegen` + `tsc`, and the Vitest suite. CI
+(`.github/workflows/ci.yml`) runs the same checks plus `pnpm build` on every PR and every push to `main`. The tests pin
+the `poc1` hash with parity vectors (including a live production call), the scoring rule, the price rule against
+real Coinbase candles, `toBaseUnits` and the Redis key namespace.
+
 **Local chain smoke test.** Public devnet airdrops are disabled, so the script runs against Surfpool:
 
 ```bash
