@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { allPublicCalls, trackRecord } from "@/lib/server/calls";
+import { trackRecord } from "@/lib/scoring";
+import { allPublicCalls } from "@/lib/server/calls";
 
 export async function GET(_: Request, { params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;

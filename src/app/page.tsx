@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { CallCard } from "@/components/CallCard";
-import { allPublicCalls, leaderboard } from "@/lib/server/calls";
+import { leaderboard } from "@/lib/scoring";
+import { allPublicCalls } from "@/lib/server/calls";
 import { fmtPct, shortAddr } from "@/lib/format";
 
 export default async function Home() {
