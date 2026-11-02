@@ -22,7 +22,7 @@ Prove the full loop with real wallets and real money, then submit. **Hard deadli
 | ◐ | 1 | Sat 31 Oct | Make a call with Phantom on devnet against the live URL; note every friction point. | Genchi Genbutsu | A real-wallet call is on the live feed |
 | ◐ | 2 | Sun 01 Nov | Unlock that call from a second wallet with faucet USDC, then fix the worst friction found. | Genchi Genbutsu / Kaizen | Caller's USDC rose by the price |
 | ✓ | 3 | Mon 02 Nov | Prefix Redis keys with `VERCEL_ENV` so preview and dev can never write production data. | Blast Radius | A preview call doesn't appear on production |
-| ◐ | 4 | Tue 03 Nov | Unit tests (hash parity vectors, scoring math, `toBaseUnits`) plus GitHub Actions CI; protect `main`. | Poka-Yoke / Lean (jidoka) | A failing PR cannot merge |
+| ✓ | 4 | Tue 03 Nov | Unit tests (hash parity vectors, scoring math, `toBaseUnits`) plus GitHub Actions CI; protect `main`. | Poka-Yoke / Lean (jidoka) | A failing PR cannot merge |
 | ◐ | 5 | Wed 04 Nov | Pick a mainnet x402 facilitator and an Aurora key; configure a mainnet Preview environment. | Huawei IPD (decision checkpoint) | Mainnet 402 lists mainnet USDC |
 | ☐ | 6 | Thu 05 Nov | Mainnet evidence: $2 Aurora top-up from Base USDC, then a $0.10 paid unlock; record the signatures. | Genchi Genbutsu | Tx links in README, Aurora status `SUCCESS` |
 | ☐ | 7 | Fri 06 Nov | 🔎 A3: can a judge try Proof of Call in 60 seconds from a cold browser? | A3 / Genchi Genbutsu | `docs/a3/judge-60s.md` |
@@ -251,12 +251,13 @@ One line per completed day: `Day N: what changed · what we learned`.
 - Day 3 ✓ (01 Nov, a day early): keys namespaced by `VERCEL_ENV`; production unchanged at `poc:*`. Seen: preview
   call `3f4099aeb610fa9e` is on the preview feed only, and a local-dev call stays in `development:poc:*`.
   Learned: local `.env.local` held production Redis credentials, so before this every `pnpm dev` wrote to production.
-- Day 4 ◐ (02 Nov, a day early): 48 Vitest tests plus GitHub Actions CI (lint, tsc, test, build), green on PR #1. Hash
+- Day 4 ✓ (02 Nov, a day early): 48 Vitest tests plus GitHub Actions CI (lint, tsc, test, build), green on PR #1. Hash
   vectors include live call `41581a66e249c4cc`, and the price fixtures are the real candles it was scored on. The
   scoring tests found a real bug: a call landing exactly on +15% scored `targetHit: false` (float `14.999…`). Fixed,
   with an A3. CI's clean checkout caught a second: `tsc` silently depended on a local `.next/types`. Learned: a test
-  that is never seen to fail proves nothing, so each regression test was run against the old code first. Open: protect
-  `main` (human: the agent may not change branch protection).
+  that is never seen to fail proves nothing, so each regression test was run against the old code first. `main` is protected
+  (required `check`, admins included). Seen: probe PR #3 with a deliberately failing test went red and GitHub reported
+  it `BLOCKED`, while PR #1 was `CLEAN`.
 - Day 5 ◐ (02 Nov, two days early): decided on PayAI as the mainnet facilitator, Dexter as fallback
   (`docs/a3/2026-11-02-mainnet-facilitator.md`). Both returned a mainnet `402` listing mainnet USDC through our own
   route (`scripts/x402-challenge.ts`); x402.org fails closed by crashing. Mainnet preview is live on branch
