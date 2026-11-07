@@ -23,7 +23,7 @@ Prove the full loop with real wallets and real money, then submit. **Hard deadli
 | ◐ | 2 | Sun 01 Nov | Unlock that call from a second wallet with faucet USDC, then fix the worst friction found. | Genchi Genbutsu / Kaizen | Caller's USDC rose by the price |
 | ✓ | 3 | Mon 02 Nov | Prefix Redis keys with `VERCEL_ENV` so preview and dev can never write production data. | Blast Radius | A preview call doesn't appear on production |
 | ✓ | 4 | Tue 03 Nov | Unit tests (hash parity vectors, scoring math, `toBaseUnits`) plus GitHub Actions CI; protect `main`. | Poka-Yoke / Lean (jidoka) | A failing PR cannot merge |
-| ☐ | 5 | Wed 04 Nov | Pick a mainnet x402 facilitator and an Aurora key; configure a mainnet Preview environment. | Huawei IPD (decision checkpoint) | Mainnet 402 lists mainnet USDC |
+| ◐ | 5 | Wed 04 Nov | Pick a mainnet x402 facilitator and an Aurora key; configure a mainnet Preview environment. | Huawei IPD (decision checkpoint) | Mainnet 402 lists mainnet USDC |
 | ☐ | 6 | Thu 05 Nov | Mainnet evidence: $2 Aurora top-up from Base USDC, then a $0.10 paid unlock; record the signatures. | Genchi Genbutsu | Tx links in README, Aurora status `SUCCESS` |
 | ☐ | 7 | Fri 06 Nov | 🔎 A3: can a judge try Proof of Call in 60 seconds from a cold browser? | A3 / Genchi Genbutsu | `docs/a3/judge-60s.md` |
 | ☐ | 8 | Sat 07 Nov | Empty, loading and error states on every async view; seed 5 real calls so the leaderboard has history. | Omotenashi | Throttled walkthrough has no dead ends |
@@ -258,3 +258,10 @@ One line per completed day: `Day N: what changed · what we learned`.
   that is never seen to fail proves nothing, so each regression test was run against the old code first. `main` is protected
   (required `check`, admins included). Seen: probe PR #3 with a deliberately failing test went red and GitHub reported
   it `BLOCKED`, while PR #1 was `CLEAN`.
+- Day 5 ◐ (02 Nov, two days early): decided on PayAI as the mainnet facilitator, Dexter as fallback
+  (`docs/a3/2026-11-02-mainnet-facilitator.md`). Both returned a mainnet `402` listing mainnet USDC through our own
+  route (`scripts/x402-challenge.ts`); x402.org fails closed by crashing. Mainnet preview is live on branch
+  `mainnet-preview` with branch-scoped env. Gemba found that it would have shared `preview:poc:*` with devnet, so keys
+  are now namespaced per cluster too. Learned: devnet rehearses v1 payment txs but mainnet facilitators build v0, so
+  the rehearsal didn't cover the real path. Open (human): Aurora key, then a deployed 402 from a real mainnet call
+  (Day 6).

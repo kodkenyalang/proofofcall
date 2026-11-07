@@ -122,9 +122,12 @@ Treat every external dependency as unreliable, slow and occasionally lying.
 
 ## 9. Blast-radius minimisation
 
-- **One database, one namespace per environment.** Every environment shares one Redis database, so keys are
-  prefixed by `VERCEL_ENV` (`keyPrefix()` in `src/lib/server/store.ts`): production keeps `poc:*`, preview
-  uses `preview:poc:*`, local dev `development:poc:*`. Never set `VERCEL_ENV=production` locally. A separate
+- **One database, one namespace per environment and cluster.** Every environment shares one Redis database, so
+  keys are prefixed by `VERCEL_ENV` and the cluster (`keyPrefix()` in `src/lib/server/store.ts`): devnet production
+  keeps `poc:*`, preview uses `preview:poc:*`, local dev `development:poc:*`, and mainnet inserts `mainnet:`
+  (`mainnet:poc:*`, `preview:mainnet:poc:*`). Never set `VERCEL_ENV=production` locally.
+- **Mainnet is staged on its own branch.** `mainnet-preview` is the only deploy with mainnet env. Gate a mainnet
+  deploy with `scripts/x402-challenge.ts` before trusting it. A separate
   store per stage is still planned (KAIZEN.md, Day 132).
 - **Pushing to `main` deploys production.** Do work on branches, which get preview URLs. Merge only green,
   reviewed, small changes.

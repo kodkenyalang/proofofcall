@@ -43,12 +43,21 @@ All notable changes to Proof of Call are recorded here. The format follows
   computed Unicode vector), scoring, the price rule against the real Coinbase candles production scored on,
   `toBaseUnits` and `keyPrefix`. GitHub Actions runs lint (zero warnings), type-check, tests and build on every PR and
   every push to `main`. `pnpm check` runs the same checks locally.
+- `scripts/x402-challenge.ts` fetches an unlock URL without paying and checks that the 402 offers the configured
+  cluster's USDC, names a facilitator fee payer, and pays the expected caller and amount.
 - `scripts/e2e-devnet.ts` takes `KEYPAIR=<funded keypair>` (public devnet airdrops are disabled) and
   `APP_URL=<deployment>`, and creates the caller's USDC account like the UI.
 
 ### Changed
 - Redis keys are namespaced per Vercel environment (`VERCEL_ENV`). Production keeps `poc:*`; preview and local
   dev write `preview:poc:*` and `development:poc:*`, so they can no longer read or write production calls.
+- Redis keys are also namespaced per cluster: mainnet deploys use `mainnet:poc:*`, `preview:mainnet:poc:*` and
+  `development:mainnet:poc:*`, so a mainnet feed never lists devnet calls. Devnet keys are unchanged.
+- **Mainnet facilitator decided:** PayAI (`https://facilitator.payai.network`), with Dexter as fallback. See
+  `docs/a3/2026-11-02-mainnet-facilitator.md`.
+- **Mainnet preview:** Git branch `mainnet-preview` deploys with branch-scoped Vercel env
+  (`NEXT_PUBLIC_SOLANA_CLUSTER=mainnet`, `X402_FACILITATOR_URL`). Every other preview stays on devnet.
+- A rejected Aurora key now reads "Aurora rejected AURORA_API_KEY" instead of the raw HTTP 404 body.
 - Prices use Coinbase public candles because Pyth Hermes now requires an API key. This limits scoring to
   crypto assets (SOL, BTC, ETH, JUP, JTO, BONK) for now.
 - Aurora integration uses one-time deposit addresses. Persistent addresses are only issued to organisations

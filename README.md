@@ -50,12 +50,21 @@ LOCAL=1 node scripts/e2e-devnet.ts                             # commit → regi
 
 ```
 NEXT_PUBLIC_SOLANA_CLUSTER=mainnet
-NEXT_PUBLIC_SOLANA_RPC_URL=<a real RPC (Helius, Triton, …)>
-X402_FACILITATOR_URL=<mainnet facilitator: PayAI, Dexter, or Coinbase CDP>
+NEXT_PUBLIC_SOLANA_RPC_URL=<a real RPC (Helius, Triton, …); the public one rate-limits quickly>
+X402_FACILITATOR_URL=https://facilitator.payai.network   # fallback: https://x402.dexter.cash
 AURORA_API_KEY=<from https://studio.aurora.dev>
 ```
 
-Use small amounts. Aurora recommends deposits of at least $1.
+On Vercel, the Git branch `mainnet-preview` deploys with these as branch-scoped Preview variables (the Aurora key is
+still to be added). Every other preview and production stays on devnet, and mainnet data lives under its own
+`…mainnet:poc:*` Redis keys. Before trusting a mainnet deploy, check its 402 without paying:
+
+```bash
+NEXT_PUBLIC_SOLANA_CLUSTER=mainnet node scripts/x402-challenge.ts <app>/api/calls/<id>/unlock [caller] [amount]
+```
+
+Why PayAI, and what was observed: `docs/a3/2026-11-02-mainnet-facilitator.md`. Use small amounts. Aurora recommends
+deposits of at least $1.
 
 ## Known limits / next steps
 
