@@ -1,5 +1,6 @@
 import "server-only";
-import type { PublicCall, TrackRecord } from "../types";
+import { scoreCall } from "../scoring";
+import type { PublicCall } from "../types";
 import { priceAt } from "./prices";
 import { type CallRecord, listCalls, updateCall } from "./store";
 
@@ -24,14 +25,7 @@ export async function resolveIfDue(r: CallRecord): Promise<CallRecord> {
   } catch {
     return r;
   }
-  const sign = r.direction === "long" ? 1 : -1;
-  const returnPct = (exitPrice / r.entryPrice - 1) * 100 * sign;
-  const outcome = {
-    exitPrice,
-    returnPct,
-    hit: returnPct > 0,
-    targetHit: r.targetBps == null ? null : returnPct * 100 >= r.targetBps,
-  };
+  const outcome = scoreCall(r.entryPrice, exitPrice, r.direction, r.targetBps);
   return (await updateCall(r.id, (x) => void (x.outcome = outcome))) ?? r;
 }
 
@@ -63,31 +57,4 @@ export function toPublic(r: CallRecord, opts: { unlocked?: boolean } = {}): Publ
 export async function allPublicCalls(): Promise<PublicCall[]> {
   const records = await Promise.all((await listCalls()).map(resolveIfDue));
   return records.sort((a, b) => b.committedAt - a.committedAt).map((r) => toPublic(r));
-}
-
-export function trackRecord(caller: string, calls: PublicCall[]): TrackRecord {
-  const mine = calls.filter((c) => c.caller === caller);
-  const scored = mine.filter((c) => c.outcome).map((c) => c.outcome!);
-  const returns = scored.map((o) => o.returnPct);
-  const hits = scored.filter((o) => o.hit).length;
-  const sum = returns.reduce((a, b) => a + b, 0);
-  return {
-    caller,
-    resolved: scored.length,
-    live: mine.filter((c) => !c.revealed).length,
-    hits,
-    hitRate: scored.length ? hits / scored.length : null,
-    avgReturnPct: scored.length ? sum / scored.length : null,
-    sumReturnPct: sum,
-    best: returns.length ? Math.max(...returns) : null,
-    worst: returns.length ? Math.min(...returns) : null,
-    unlocks: mine.reduce((a, c) => a + c.unlocks, 0),
-  };
-}
-
-export function leaderboard(calls: PublicCall[]): TrackRecord[] {
-  const callers = [...new Set(calls.map((c) => c.caller))];
-  return callers
-    .map((c) => trackRecord(c, calls))
-    .sort((a, b) => b.sumReturnPct - a.sumReturnPct || b.resolved - a.resolved);
 }

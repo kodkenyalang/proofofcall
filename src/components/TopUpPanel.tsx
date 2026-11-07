@@ -6,19 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import type { AppClient } from "@/app/providers";
 import { CLUSTER } from "@/lib/config";
+import { toBaseUnits } from "@/lib/units";
 import type { AuroraToken, TopUpQuote, TopUpStatus } from "@/lib/server/aurora";
 
 const input = "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent";
 const DONE = new Set(["SUCCESS", "REFUNDED", "FAILED"]);
-
-// "1.5" with 6 decimals -> "1500000", without floating point.
-function toBaseUnits(amount: string, decimals: number): string | null {
-  const m = amount.trim().match(/^(\d*)(?:\.(\d*))?$/);
-  if (!m || (!m[1] && !m[2])) return null;
-  const frac = (m[2] ?? "").slice(0, decimals).padEnd(decimals, "0");
-  const units = BigInt((m[1] || "0") + frac);
-  return units > BigInt(0) ? units.toString() : null;
-}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);

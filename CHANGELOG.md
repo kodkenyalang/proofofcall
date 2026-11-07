@@ -39,6 +39,10 @@ All notable changes to Proof of Call are recorded here. The format follows
 - **Payable callers.** When the caller's wallet has no USDC account, the commit transaction also creates it
   (idempotent, rent read from the RPC and shown on the review screen). Without it, every x402 payment to that
   caller fails. The unlock route now answers `409` before the paywall when the caller still can't be paid.
+- **Tests and CI.** 48 Vitest tests: `poc1` hash parity vectors (a live production call plus an independently
+  computed Unicode vector), scoring, the price rule against the real Coinbase candles production scored on,
+  `toBaseUnits` and `keyPrefix`. GitHub Actions runs lint (zero warnings), type-check, tests and build on every PR and
+  every push to `main`. `pnpm check` runs the same checks locally.
 - `scripts/e2e-devnet.ts` takes `KEYPAIR=<funded keypair>` (public devnet airdrops are disabled) and
   `APP_URL=<deployment>`, and creates the caller's USDC account like the UI.
 
@@ -55,6 +59,9 @@ All notable changes to Proof of Call are recorded here. The format follows
   `skills-lock.json`) and keeps `.env.example`.
 
 ### Fixed
+- A call that reached its target exactly scored `targetHit: false`, because `(115 / 100 - 1) * 100` is
+  `14.999999999999991` in floating point. `scoreCall` now absorbs float error (1e-6 bps). See
+  `docs/a3/2026-11-02-exact-target-scoring.md`.
 - Registration no longer fails when a commit is registered before the market has printed its entry price.
 - Local-only `.env.local` Surfpool RPC settings were removed so the dev server reads the real database path.
 

@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { CallCard } from "@/components/CallCard";
-import { allPublicCalls, trackRecord } from "@/lib/server/calls";
+import { trackRecord } from "@/lib/scoring";
+import { allPublicCalls } from "@/lib/server/calls";
 import { fmtPct } from "@/lib/format";
 
 export default async function CallerPage({ params }: PageProps<"/u/[address]">) {
